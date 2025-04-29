@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Todo Master - Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/js/all.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <script>
+        // Apply theme from localStorage before rendering to prevent flash
+        if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+        // Optional: Tailwind config for class-based dark mode
+        tailwind.config = {
+            darkMode: 'class',
+        }
+    </script>
+</head>
+
+<body class="bg-gray-50 dark:bg-gray-900 dark:text-gray-100 min-h-screen flex flex-col transition-colors">
+    <div class="mx-auto w-full max-w-3xl px-4 py-8 flex-1 flex flex-col">
+        <header class="flex flex-wrap gap-4 items-center justify-between mb-6">
+            <h1 class="text-3xl font-bold tracking-tight flex items-center gap-2">
+                <i class="fa-solid fa-check-double text-[#ff4473]"></i> Todo Master
+            </h1>
+            <div class="flex gap-2">
+                <button id="themeBtn" class="p-2 rounded-lg bg-gray-200 dark:bg-gray-800">
+                    <i class="fa-solid fa-sun hidden dark:inline"></i>
+                    <i class="fa-solid fa-moon dark:hidden"></i>
+                </button>
+                <button id="deleteAllBtn" class="p-2 rounded-lg bg-red-100 text-red-600 hover:bg-red-200">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
+            </div>
+        </header>
+
+        <section class="bg-white dark:bg-gray-800 rounded-2xl shadow px-6 py-6 flex flex-col gap-6 flex-1">
+            <div class="flex flex-col sm:flex-row gap-3">
+                <input id="todoInput"
+                    class="flex-1 px-4 py-3 rounded-tl-lg rounded-tr-lg rounded-br-lg border dark:border-gray-600 dark:bg-gray-900 outline-none focus:ring-2 focus:ring-[#ff4473]"
+                    placeholder="What needs to be done?">
+                <input id="dateInput" type="date"
+                    class="px-3 py-3 rounded-lg border dark:border-gray-600 dark:bg-gray-900 outline-none">
+                <select id="prioInput"
+                    class="px-3 py-3 rounded-lg border dark:border-gray-600 dark:bg-gray-900 outline-none">
+                    <option value="low">Low</option>
+                    <option value="mid" selected>Medium</option>
+                    <option value="high">High</option>
+                </select>
+                <button id="addBtn"
+                    class="px-5 py-3 bg-[#ff4473] text-white font-semibold rounded-tl-lg rounded-tr-lg rounded-br-lg hover:bg-[#e03b65] flex items-center gap-2">
+                    <i class="fa-solid fa-plus"></i> Add
+                </button>
+            </div>
+
+            <div class="flex flex-wrap gap-3 items-center">
+                <div class="flex gap-2">
+                    <button data-filter="all"
+                        class="filterBtn px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-700">All</button>
+                    <button data-filter="active" class="filterBtn px-4 py-2 rounded-lg">Active</button>
+                    <button data-filter="completed" class="filterBtn px-4 py-2 rounded-lg">Completed</button>
+                </div>
+                <input id="searchBox" placeholder="Search…"
+                    class="flex-1 px-3 py-2 rounded-lg border dark:border-gray-600 dark:bg-gray-900 outline-none">
+                <button id="clearCompletedBtn"
+                    class="px-4 py-2 rounded-lg bg-emerald-100 text-emerald-600 hover:bg-emerald-200">Clear
+                    Completed</button>
+            </div>
+
+            <ul id="todoList" class="flex-1 overflow-y-auto scrollbar-thin pr-1 space-y-2"></ul>
+
+            <footer class="flex justify-between text-sm text-gray-500 dark:text-gray-400 pt-2">
+                <span id="totalTodos">Total: 0</span>
+                <span id="completedTodos">Completed: 0</span>
+            </footer>
+        </section>
+    </div>
+
+    <script>
+        const htmlEl = document.documentElement;
+        const themeBtn = document.getElementById('themeBtn');
+
+        function toggleTheme() {
+            const isDark = htmlEl.classList.toggle('dark');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        }
+
+        themeBtn.onclick = toggleTheme;
+
+        // Initial theme setup is done in the <head> script
+
+        let todos = JSON.parse(localStorage.getItem('todos-v2')) || [];
+        let filter = 'all';
+        const listEl = document.getElementById('todoList');
+        new Sortable(listEl, { animation: 150, onEnd: updateOrder });
+
+        const addBtn = document.getElementById('addBtn');
+        const todoInput = document.getElementById('todoInput');
+        const dateInput = document.getElementById('dateInput');
+        const prioInput = document.getElementById('prioInput');
+        const deleteAllBtn = document.getElementById('deleteAllBtn');
+        const clearCompletedBtn = document.getElementById('clearCompletedBtn');
+        const filterBtns = document.querySelectorAll('.filterBtn');
+        const searchBox = document.getElementById('searchBox');
+        const totalTodosEl = document.getElementById('totalTodos');
+        const completedTodosEl = document.getElementById('completedTodos');
+
+        addBtn.onclick = addTodo;
+        todoInput.addEventListener('keypress', e => e.key === 'Enter' && addTodo());
+        deleteAllBtn.onclick = () => { if (confirm('Delete all tasks?')) { todos = []; save(); } };
+        clearCompletedBtn.onclick = () => { todos = todos.filter(t => !t.completed); save(); };
+        filterBtns.forEach(btn => btn.onclick = () => { filter = btn.dataset.filter; updateBtns(); render(); });
+        searchBox.oninput = render;
+
+        function updateBtns() {
+            filterBtns.forEach(b => {
+                const isActive = b.dataset.filter === filter;
+                b.classList.toggle('bg-gray-200', isActive);
+                b.classList.toggle('dark:bg-gray-700', isActive);
+                // Ensure non-active buttons don't have the active styles
+                if (!isActive) {
+                    b.classList.remove('bg-gray-200', 'dark:bg-gray-700');
+                }
+            });
+        }
+
+
+        function addTodo() {
+            const text = todoInput.value.trim();
+            if (!text) return;
+            todos.push({
+                id: crypto.randomUUID(),
+                text,
+                completed: false,
+                created: Date.now(),
+                due: dateInput.value || '',
+                prio: prioInput.value
+            });
+            todoInput.value = '';
+            dateInput.value = '';
+            prioInput.value = 'mid';
+            save();
+        }
+
+        function toggle(id) {
+            const todo = todos.find(t => t.id === id);
+            if (todo) {
+                todo.completed = !todo.completed;
+            }
+            save();
+        }
+
+        function del(id) {
+            todos = todos.filter(t => t.id !== id);
+            save();
+        }
+
+        function edit(id) {
+            const todo = todos.find(t => t.id === id);
+            if (!todo) return;
+            const newText = prompt('Edit task', todo.text);
+            if (newText !== null) {
+                todo.text = newText.trim();
+                save();
+            }
+        }
+
+        function updateOrder(e) {
+            const item = todos.splice(e.oldIndex, 1)[0];
+            todos.splice(e.newIndex, 0, item);
+            save();
+        }
+
+        function save() {
+            localStorage.setItem('todos-v2', JSON.stringify(todos));
+            render();
+            stats();
+        }
+
+        function stats() {
+            totalTodosEl.textContent = `Total: ${todos.length}`;
+            completedTodosEl.textContent = `Completed: ${todos.filter(t => t.completed).length}`;
+        }
+
+        function render() {
+            const query = searchBox.value.toLowerCase();
+            listEl.innerHTML = '';
+            let data = todos.filter(t => !query || t.text.toLowerCase().includes(query));
+
+            if (filter === 'active') {
+                data = data.filter(t => !t.completed);
+            } else if (filter === 'completed') {
+                data = data.filter(t => t.completed);
+            }
+
+            data.forEach(t => {
+                const li = document.createElement('li');
+                li.className = `flex items-center gap-3 p-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm transition-opacity ${t.completed ? 'opacity-60' : ''}`;
+                li.dataset.id = t.id;
+
+                let priorityClass = '';
+                switch (t.prio) {
+                    case 'high': priorityClass = 'bg-red-100 text-red-600'; break;
+                    case 'mid': priorityClass = 'bg-amber-100 text-amber-600'; break;
+                    case 'low': priorityClass = 'bg-green-100 text-green-600'; break;
+                    default: priorityClass = 'bg-gray-100 text-gray-600'; // Fallback
+                }
+
+                li.innerHTML = `
+                    <input type="checkbox" class="w-5 h-5 accent-[#ff4473] cursor-pointer flex-shrink-0" ${t.completed ? 'checked' : ''}>
+                    <div class="flex-1 min-w-0"> <!-- Added min-w-0 for text overflow -->
+                        <p class="truncate ${t.completed ? 'line-through' : ''}">${t.text}</p> <!-- Added truncate -->
+                        <div class="text-xs mt-1 flex gap-2 flex-wrap">
+                            ${t.due ? `<span class="px-2 py-0.5 rounded-full bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300">${t.due}</span>` : ''}
+                            <span class="px-2 py-0.5 rounded-full ${priorityClass} capitalize">${t.prio}</span>
+                        </div>
+                    </div>
+                    <div class="flex gap-1 sm:gap-2 flex-shrink-0">
+                        <button class="p-2 text-blue-500 hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-gray-700 rounded-md edit-btn"><i class="fa-solid fa-pen"></i></button>
+                        <button class="p-2 text-red-500 hover:bg-red-100 dark:text-red-400 dark:hover:bg-gray-700 rounded-md delete-btn"><i class="fa-solid fa-trash"></i></button>
+                    </div>`;
+
+                li.querySelector('input[type="checkbox"]').onchange = () => toggle(t.id);
+                li.querySelector('.delete-btn').onclick = () => del(t.id);
+                li.querySelector('.edit-btn').onclick = () => edit(t.id);
+                listEl.appendChild(li);
+            });
+        }
+
+        // Initial setup call
+        updateBtns();
+        render();
+        stats();
+    </script>
+</body>
+
+</html>

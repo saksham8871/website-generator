@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clik - Stunning Photography</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Updated Font: Montserrat -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        /* Customizing default Tailwind font families */
+        /* Setting Montserrat as the primary body font */
+        body {
+            font-family: 'Montserrat', sans-serif;
+        }
+
+         /* Custom scrollbar for modern look */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+</head>
+
+<!-- Set body background to white and text to a dark shade for black font appearance -->
+<body class="bg-white text-gray-900 min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <!-- Ensure header background is white and sticky with blur -->
+    <header class="sticky top-0 bg-white bg-opacity-80 backdrop-blur-sm shadow-sm z-10">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <!-- Removed font-display, will inherit Montserrat -->
+            <a href="#" class="text-3xl font-bold tracking-wider">Clik</a>
+            <!-- Navigation links can be added here if needed -->
+             <nav>
+                <ul class="flex space-x-4 font-medium">
+                    <li><a href="#gallery" class="hover:underline hover:underline-offset-4 transition-all">Gallery</a></li>
+                    <li><a href="#about" class="hover:underline hover:underline-offset-4 transition-all">About</a></li>
+                    <!-- <li><a href="#contact" class="hover:underline hover:underline-offset-4 transition-all">Contact</a></li> -->
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="flex-grow">
+        <!-- Hero Section -->
+        <section class="relative h-[80vh] md:h-[90vh] flex items-center justify-center overflow-hidden">
+            <!-- Use a different image ID for variety and keep grayscale as per About section theme -->
+            <img src="https://picsum.photos/id/1074/1600/900?grayscale" alt="Stunning landscape photo"
+                class="absolute inset-0 w-full h-full object-cover filter grayscale opacity-90">
+            <div class="relative z-10 text-center px-4">
+                 <!-- Removed font-display, will inherit Montserrat -->
+                <h2 class="text-4xl md:text-6xl lg:text-7xl font-bold text-white drop-shadow-lg">Capture the Moment</h2>
+                <p class="mt-4 text-xl md:text-2xl font-light text-white text-opacity-90 drop-shadow-md">Timeless photography that tells your story.</p>
+                <a href="#gallery" class="mt-8 inline-block px-8 py-3 bg-white text-gray-900 text-lg font-semibold rounded-full shadow-lg hover:bg-gray-100 transition-colors transform hover:scale-105">View Our Work</a>
+            </div>
+        </section>
+
+        <!-- Gallery Section -->
+        <section id="gallery" class="container mx-auto px-4 py-16">
+             <!-- Removed font-display, will inherit Montserrat -->
+            <h2 class="text-3xl md:text-4xl font-bold text-center mb-12">Our Latest Work</h2>
+            <!-- Added more images and variety in aspect ratios -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Gallery Item 1 -->
+                <figure class="overflow-hidden rounded-lg shadow-lg group cursor-pointer">
+                    <img src="https://picsum.photos/id/1015/500/700?grayscale" alt="Gallery Image 1" loading="lazy"
+                        class="w-full h-64 md:h-80 object-cover transform group-hover:scale-105 transition-transform duration-300 ease-in-out filter grayscale">
+                    <figcaption class="p-4 text-center text-sm text-gray-700">Urban Capture</figcaption>
+                </figure>
+                <!-- Gallery Item 2 -->
+                <figure class="overflow-hidden rounded-lg shadow-lg group cursor-pointer">
+                    <img src="https://picsum.photos/id/1018/600/500?grayscale" alt="Gallery Image 2" loading="lazy"
+                        class="w-full h-64 md:h-80 object-cover transform group-hover:scale-105 transition-transform duration-300 ease-in-out filter grayscale">
+                    <figcaption class="p-4 text-center text-sm text-gray-700">Nature's Serenity</figcaption>
+                </figure>
+                <!-- Gallery Item 3 -->
+                <figure class="overflow-hidden rounded-lg shadow-lg group cursor-pointer">
+                    <img src="https://picsum.photos/id/1025/500/500?grayscale" alt="Gallery Image 3" loading="lazy"
+                        class="w-full h-64 md:h-80 object-cover transform group-hover:scale-105 transition-transform duration-300 ease-in-out filter grayscale">
+                    <figcaption class="p-4 text-center text-sm text-gray-700">Abstract Lines</figcaption>
+                </figure>
+                 <!-- Gallery Item 4 -->
+                 <figure class="overflow-hidden rounded-lg shadow-lg group cursor-pointer">
+                    <img src="https://picsum.photos/id/1039/500/700?grayscale" alt="Gallery Image 4" loading="lazy"
+                        class="w-full h-64 md:h-80 object-cover transform group-hover:scale-105 transition-transform duration-300 ease-in-out filter grayscale">
+                    <figcaption class="p-4 text-center text-sm text-gray-700">People in Motion</figcaption>
+                </figure>
+                <!-- Gallery Item 5 -->
+                <figure class="overflow-hidden rounded-lg shadow-lg group cursor-pointer">
+                    <img src="https://picsum.photos/id/1043/600/500?grayscale" alt="Gallery Image 5" loading="lazy"
+                        class="w-full h-64 md:h-80 object-cover transform group-hover:scale-105 transition-transform duration-300 ease-in-out filter grayscale">
+                    <figcaption class="p-4 text-center text-sm text-gray-700">Still Life</figcaption>
+                </figure>
+                <!-- Gallery Item 6 -->
+                <figure class="overflow-hidden rounded-lg shadow-lg group cursor-pointer">
+                    <img src="https://picsum.photos/id/1058/500/500?grayscale" alt="Gallery Image 6" loading="lazy"
+                        class="w-full h-64 md:h-80 object-cover transform group-hover:scale-105 transition-transform duration-300 ease-in-out filter grayscale">
+                    <figcaption class="p-4 text-center text-sm text-gray-700">Geometric Pattern</figcaption>
+                </figure>
+                 <!-- Gallery Item 7 -->
+                 <figure class="overflow-hidden rounded-lg shadow-lg group cursor-pointer">
+                    <img src="https://picsum.photos/id/1060/500/700?grayscale" alt="Gallery Image 7" loading="lazy"
+                        class="w-full h-64 md:h-80 object-cover transform group-hover:scale-105 transition-transform duration-300 ease-in-out filter grayscale">
+                    <figcaption class="p-4 text-center text-sm text-gray-700">Black & White</figcaption>
+                </figure>
+                <!-- Gallery Item 8 -->
+                <figure class="overflow-hidden rounded-lg shadow-lg group cursor-pointer">
+                    <img src="https://picsum.photos/id/1062/600/500?grayscale" alt="Gallery Image 8" loading="lazy"
+                        class="w-full h-64 md:h-80 object-cover transform group-hover:scale-105 transition-transform duration-300 ease-in-out filter grayscale">
+                    <figcaption class="p-4 text-center text-sm text-gray-700">Portrait Mood</figcaption>
+                </figure>
+                <!-- Gallery Item 9 -->
+                <figure class="overflow-hidden rounded-lg shadow-lg group cursor-pointer">
+                    <img src="https://picsum.photos/id/1071/500/500?grayscale" alt="Gallery Image 9" loading="lazy"
+                        class="w-full h-64 md:h-80 object-cover transform group-hover:scale-105 transition-transform duration-300 ease-in-out filter grayscale">
+                    <figcaption class="p-4 text-center text-sm text-gray-700">Minimalist View</figcaption>
+                </figure>
+                 <!-- Gallery Item 10 - Added -->
+                <figure class="overflow-hidden rounded-lg shadow-lg group cursor-pointer">
+                    <img src="https://picsum.photos/id/1080/500/700?grayscale" alt="Gallery Image 10" loading="lazy"
+                        class="w-full h-64 md:h-80 object-cover transform group-hover:scale-105 transition-transform duration-300 ease-in-out filter grayscale">
+                    <figcaption class="p-4 text-center text-sm text-gray-700">Road Ahead</figcaption>
+                </figure>
+                 <!-- Gallery Item 11 - Added -->
+                 <figure class="overflow-hidden rounded-lg shadow-lg group cursor-pointer">
+                    <img src="https://picsum.photos/id/1084/600/500?grayscale" alt="Gallery Image 11" loading="lazy"
+                        class="w-full h-64 md:h-80 object-cover transform group-hover:scale-105 transition-transform duration-300 ease-in-out filter grayscale">
+                    <figcaption class="p-4 text-center text-sm text-gray-700">Abstract Nature</figcaption>
+                </figure>
+                 <!-- Gallery Item 12 - Added -->
+                 <figure class="overflow-hidden rounded-lg shadow-lg group cursor-pointer">
+                    <img src="https://picsum.photos/id/1076/500/500?grayscale" alt="Gallery Image 12" loading="lazy"
+                        class="w-full h-64 md:h-80 object-cover transform group-hover:scale-105 transition-transform duration-300 ease-in-out filter grayscale">
+                    <figcaption class="p-4 text-center text-sm text-gray-700">City Lights</figcaption>
+                </figure>
+            </div>
+        </section>
+
+        <!-- About Section -->
+        <!-- Ensure background is light gray and text is dark -->
+        <section id="about" class="bg-gray-100 py-16">
+            <div class="container mx-auto px-4 text-center max-w-2xl">
+                 <!-- Removed font-display, will inherit Montserrat -->
+                <h2 class="text-3xl md:text-4xl font-bold mb-8">About Clik</h2>
+                <p class="text-lg leading-relaxed text-gray-700">
+                    At Clik, we believe that every moment tells a story. Our passion lies in capturing the essence of life,
+                    from the grand landscapes that take your breath away to the intimate details that make memories last forever.
+                    Specializing in monochrome photography, we focus on light, shadow, and composition to create powerful, timeless images.
+                    Let us help you preserve your most cherished moments with artistry and depth.
+                </p>
+            </div>
+        </section>
+
+        <!-- Optional: Contact Section (Simple) -->
+        <!-- <section id="contact" class="py-16">
+            <div class="container mx-auto px-4 text-center max-w-xl">
+                 <h2 class="text-3xl md:text-4xl font-bold mb-8">Get in Touch</h2>
+                 <p class="text-lg leading-relaxed text-gray-700">
+                     Interested in working with us or have a question? Reach out!
+                 </p>
+                 <p class="mt-6 text-xl font-semibold">info@clikphotography.com</p>
+            </div>
+        </section> -->
+
+    </main>
+
+    <!-- Footer -->
+    <!-- Ensure footer background is dark and text is light gray -->
+    <footer class="bg-gray-900 text-gray-400 py-8">
+        <div class="container mx-auto px-4 text-center text-sm">
+            &copy; 2023 Clik. All rights reserved. | Images from Lorem Picsum
+        </div>
+    </footer>
+
+    <script>
+        /**
+         * Handles smooth scrolling for anchor links, accounting for a fixed header height.
+         */
+         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+             anchor.addEventListener('click', function (e) {
+                 e.preventDefault();
+
+                 const targetId = this.getAttribute('href');
+                 const targetElement = document.querySelector(targetId);
+                 const header = document.querySelector('header'); // Get the header element
+
+                 if (targetElement && header) {
+                     const headerHeight = header.offsetHeight; // Get header height in pixels
+
+                     // Calculate the target position relative to the document's top
+                     const targetPosition = targetElement.getBoundingClientRect().top + window.scrollY;
+
+                     // Calculate the scroll position, offsetting by the header height
+                     // Ensure the calculated position is not less than 0
+                     const scrollToPosition = Math.max(0, targetPosition - headerHeight);
+
+                     window.scrollTo({
+                         top: scrollToPosition,
+                         behavior: 'smooth'
+                     });
+                 } else if (targetElement) {
+                     // Fallback using standard scrollIntoView if header element is not found
+                      targetElement.scrollIntoView({
+                          behavior: 'smooth'
+                      });
+                 }
+             });
+         });
+    </script>
+</body>
+
+</html>

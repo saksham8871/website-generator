@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Calculator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome CDN for icons (used for theme toggle, backspace) -->
+    <!-- Note: Using CDN for icon font is generally acceptable for simple inclusion -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/js/all.min.js"></script>
+    <script>
+        // Apply theme from localStorage before rendering to prevent flash
+        const savedTheme = localStorage.getItem('theme');
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+        if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+            document.documentElement.classList.add('dark');
+        } else if (savedTheme === 'light') {
+            document.documentElement.classList.remove('dark');
+        }
+        // Optional: Tailwind config for class-based dark mode
+        tailwind.config = {
+            darkMode: 'class',
+        }
+    </script>
+</head>
+
+<body
+    class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen flex flex-col items-center justify-center p-4 transition-colors">
+
+    <div class="w-full max-w-sm mb-4 flex justify-end">
+        <button id="themeToggleBtn"
+            class="p-2 rounded-lg bg-gray-200 hover:bg-gray-300 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+            <i class="fas fa-sun dark:hidden"></i>
+            <i class="fas fa-moon hidden dark:inline"></i>
+            <span class="sr-only">Toggle theme</span>
+        </button>
+    </div>
+
+    <main class="w-full max-w-sm bg-white dark:bg-gray-800 rounded-lg shadow-xl overflow-hidden">
+        <section id="display" aria-live="polite" aria-atomic="true"
+            class="h-20 flex flex-col justify-end items-end px-4 py-2 text-4xl font-light bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 overflow-hidden break-words">
+            <!-- Display will show both the current input and potentially the previous input/operator -->
+            <div id="previousDisplay"
+                class="text-sm text-gray-600 dark:text-gray-400 h-5 opacity-80 truncate w-full text-right"></div>
+            <div id="currentDisplay" class="text-4xl font-light h-10 truncate w-full text-right">0</div>
+        </section>
+
+        <div id="buttons" class="grid grid-cols-4 gap-1 p-1">
+            <!-- Row 1 -->
+            <button class="btn btn-clear col-span-2" aria-label="Clear">C</button>
+            <button class="btn btn-operator" data-operator="÷" aria-label="Divide">&divide;</button>
+            <button class="btn btn-backspace" aria-label="Backspace">&leftarrow;</button>
+
+            <!-- Row 2 -->
+            <button class="btn btn-number" aria-label="Seven">7</button>
+            <button class="btn btn-number" aria-label="Eight">8</button>
+            <button class="btn btn-number" aria-label="Nine">9</button>
+            <button class="btn btn-operator" data-operator="×" aria-label="Multiply">&times;</button>
+
+            <!-- Row 3 -->
+            <button class="btn btn-number" aria-label="Four">4</button>
+            <button class="btn btn-number" aria-label="Five">5</button>
+            <button class="btn btn-number" aria-label="Six">6</button>
+            <button class="btn btn-operator" data-operator="-" aria-label="Subtract">-</button>
+
+            <!-- Row 4 -->
+            <button class="btn btn-number" aria-label="One">1</button>
+            <button class="btn btn-number" aria-label="Two">2</button>
+            <button class="btn btn-number" aria-label="Three">3</button>
+            <button class="btn btn-operator" data-operator="+" aria-label="Add">+</button>
+
+            <!-- Row 5 -->
+            <button class="btn btn-number col-span-2" aria-label="Zero">0</button>
+            <button class="btn btn-number" aria-label="Decimal point">.</button>
+            <button class="btn btn-equals" aria-label="Equals">=</button>
+        </div>
+    </main>
+
+    <script>
+        const htmlEl = document.documentElement;
+        const themeToggleBtn = document.getElementById('themeToggleBtn');
+        const currentDisplay = document.getElementById('currentDisplay');
+        const previousDisplay = document.getElementById('previousDisplay');
+        const buttons = document.getElementById('buttons');
+
+        let currentInput = '0';
+        let previousInput = null;
+        let operator = null;
+        let waitingForSecondOperand = false;
+
+        /**
+         * Updates the display elements with the current state.
+         * Shows previous input and operator if waitingForSecondOperand is true,
+         * otherwise shows only the current input.
+         * Includes basic handling for displaying results vs ongoing input.
+         */
+        function updateDisplay() {
+            currentDisplay.textContent = currentInput;
+
+            // Show previous input and operator if applicable
+            if (waitingForSecondOperand && previousInput !== null && operator !== null) {
+                // If we just calculated a result and are waiting for the next input,
+                // previousDisplay should probably show the result and the *new* operator when it's chosen.
+                // But while just entering the *first* number, it should be blank.
+                // Let's refine: previous display shows the *first* operand and operator *after* the operator is pressed.
+                if (currentDisplay.textContent !== 'Error') { // Don't show previous state on error
+                   previousDisplay.textContent = `${previousInput} ${operator}`;
+                }
+            } else {
+                 // When not waiting for a second operand (i.e., actively typing the first or second number),
+                 // or after calculation is complete, clear the previous display.
+                previousDisplay.textContent = '';
+            }
+        }
+
+        /**
+         * Toggles between dark and light mode.
+         */
+        function toggleTheme() {
+            const isDark = htmlEl.classList.contains('dark');
+            if (isDark) {
+                htmlEl.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+            } else {
+                htmlEl.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+            }
+            // Icon toggle is handled automatically by Tailwind's hidden/inline based on 'dark' class
+        }
+
+        // Event listener for theme toggle button
+        themeToggleBtn.onclick = toggleTheme;
+
+
+        /**
+         * Resets the calculator state.
+         */
+        function resetCalculator() {
+            currentInput = '0';
+            previousInput = null;
+            operator = null;
+            waitingForSecondOperand = false;
+            updateDisplay(); // Update display after reset
+        }
+
+        /**
+         * Appends a number or decimal point to the current input.
+         * @param {string} numberString - The digit or decimal point to append.
+         */
+        function inputDigit(numberString) {
+            if (waitingForSecondOperand) {
+                // If waiting for the second operand, start a new number
+                currentInput = numberString === '.' ? '0.' : numberString; // Handle leading dot
+                waitingForSecondOperand = false;
+            } else {
+                // If current input is '0' and not a decimal point, replace it
+                if (currentInput === '0' && numberString !== '.') {
+                    currentInput = numberString;
+                }
+                // Prevent multiple decimal points
+                else if (numberString === '.' && currentInput.includes('.')) {
+                    return; // Do nothing if decimal already exists
+                }
+                // Append the digit or decimal
+                else {
+                    currentInput = currentInput + numberString;
+                }
+            }
+            updateDisplay();
+        }
+
+        /**
+         * Handles the selection of an operator (+, -, ×, ÷).
+         * @param {string} nextOperator - The operator symbol.
+         */
+        function handleOperator(nextOperator) {
+            const inputValue = parseFloat(currentInput);
+
+            // Allow changing operator if one is already selected and no new number is entered
+            if (operator && waitingForSecondOperand) {
+                operator = nextOperator;
+                updateDisplay(); // Update display to show the new operator
+                return;
+            }
+
+            // If previousInput exists and we're not waiting for a new number,
+            // it means a calculation is pending. Perform it first.
+            if (previousInput !== null) {
+                // Only calculate if the current input is a valid number
+                if (!isNaN(inputValue)) {
+                     const result = calculate(previousInput, inputValue, operator);
+
+                    // Handle potential errors (like division by zero)
+                    if (isNaN(result) || !isFinite(result)) {
+                        currentDisplay.textContent = 'Error';
+                        resetCalculator(); // Reset state on error
+                        return;
+                    }
+
+                    // Use the result as the new previousInput for chaining operations
+                    previousInput = String(result);
+                }
+            } else {
+                // No previous operation, just store the current input as previous
+                previousInput = String(inputValue);
+            }
+
+            // Set the new operator and indicate waiting for the next operand
+            waitingForSecondOperand = true;
+            operator = nextOperator;
+            // currentInput is implicitly held, next digit input will clear it.
+            updateDisplay();
+        }
+
+        /**
+         * Performs the actual calculation based on the stored values and operator.
+         * @param {string} firstOperand - The first number (string representation).
+         * @param {number} secondOperand - The second number (as a number type).
+         * @param {string} op - The operator (+, -, ×, ÷).
+         * @returns {number} The result of the calculation, or NaN/Infinity for errors.
+         */
+        function calculate(firstOperand, secondOperand, op) {
+            const first = parseFloat(firstOperand);
+            const second = secondOperand;
+
+            // Check for invalid numbers before calculation
+            if (isNaN(first) || isNaN(second)) {
+                return NaN;
+            }
+
+            if (op === '+') return first + second;
+            if (op === '-') return first - second;
+            if (op === '×') return first * second;
+            if (op === '÷') {
+                if (second === 0) return NaN; // Indicate division by zero error
+                return first / second;
+            }
+
+            return second; // Should not happen with valid operators
+        }
+
+        /**
+         * Executes the pending calculation when the '=' button is pressed.
+         */
+        function handleEquals() {
+            // Only calculate if there is a pending operator and a previous value,
+            // and we are not already waiting for the second operand (which implies
+            // '=' was pressed right after an operator).
+            if (operator === null || previousInput === null || waitingForSecondOperand) {
+                 // If there's no pending operation or we just pressed an operator,
+                 // '=' does nothing or clears state. Let's make it clear state if operator was pending.
+                 // If operator is null, just ensure state is clean.
+                 waitingForSecondOperand = false; // Ensure we are no longer waiting for input
+                 operator = null;
+                 previousInput = null; // Clear previous state completely after calculation
+                 updateDisplay(); // Refresh display (will only show currentInput or reset to 0)
+                 return;
+             }
+
+             const inputValue = parseFloat(currentInput);
+
+             // Check if the current input is a valid number for the calculation
+             if (isNaN(inputValue)) {
+                 currentDisplay.textContent = 'Error';
+                 resetCalculator();
+                 return;
+             }
+
+             const result = calculate(previousInput, inputValue, operator);
+
+             // Handle potential errors
+             if (isNaN(result) || !isFinite(result)) {
+                 currentDisplay.textContent = 'Error';
+                 resetCalculator(); // Reset state on error
+                 return;
+             }
+
+             // Display result and reset state for a new calculation
+             currentInput = String(result); // Store result as current input
+             previousInput = null; // Calculation is complete, clear previous operand
+             operator = null; // Clear pending operator
+             waitingForSecondOperand = true; // Treat the result as the start of a new number input if a digit follows
+
+             updateDisplay();
+        }
+
+        /**
+         * Handles the backspace action, removing the last character from the current input.
+         */
+        function handleBackspace() {
+             if (waitingForSecondOperand) {
+                 // If waiting for the second operand, backspace does nothing until a digit is entered.
+                 // Or it could clear the operator and revert to showing previousInput as current?
+                 // Let's keep it simple: backspace only affects the current number being entered.
+                 // If waitingForSecondOperand is true, we are effectively on a new '0' or first digit.
+                 // So backspace should reset currentInput to '0'.
+                 currentInput = '0';
+                 waitingForSecondOperand = false; // Allow new input
+             } else {
+                 // If currentInput is '0' or error, backspace does nothing.
+                 if (currentInput === '0' || currentDisplay.textContent === 'Error') {
+                     return;
+                 }
+                 // Remove the last character from currentInput
+                 currentInput = currentInput.slice(0, -1);
+                 // If the input becomes empty, reset to '0'
+                 if (currentInput === '' || currentInput === '-') { // Also handle if only a '-' was left
+                     currentInput = '0';
+                 }
+             }
+             updateDisplay();
+        }
+
+        /**
+         * Handles button click events using event delegation.
+         * @param {Event} event - The click event object.
+         */
+        function handleButtonClick(event) {
+            const target = event.target;
+
+            // Ensure a button was clicked and it's not the display area
+            // or a child icon/span within a button (find the parent button)
+            const button = target.closest('button');
+            if (!button) {
+                return;
+            }
+
+            // Use the button element found via closest()
+            if (button.classList.contains('btn-number')) {
+                inputDigit(button.textContent);
+            } else if (button.classList.contains('btn-operator')) {
+                 // Use data-operator attribute for consistent operator symbols
+                handleOperator(button.dataset.operator);
+            } else if (button.classList.contains('btn-equals')) {
+                handleEquals();
+            } else if (button.classList.contains('btn-clear')) {
+                resetCalculator();
+            } else if (button.classList.contains('btn-backspace')) {
+                handleBackspace();
+            }
+            // Button press feedback is handled by Tailwind's 'active:' variant on the button itself.
+        }
+
+        // Add click listener to the button container for delegation
+        buttons.addEventListener('click', handleButtonClick);
+
+
+        /**
+         * Handles keyboard key press events to enable calculator input.
+         * @param {KeyboardEvent} event - The keyboard event object.
+         */
+        function handleKeyPress(event) {
+            const key = event.key;
+
+            // Prevent default actions for keys handled by the calculator
+            if (['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '+', '-', '*', '/', '=', 'Enter', 'Backspace', 'Escape', 'c'].includes(key) ||
+                // Also check Numpad keys
+                key.startsWith('Numpad')) {
+                event.preventDefault();
+            }
+
+
+            if (key >= '0' && key <= '9') {
+                inputDigit(key);
+            } else if (key === '.') {
+                inputDigit('.');
+            } else if (key === '+') {
+                handleOperator('+');
+            } else if (key === '-') {
+                handleOperator('-');
+            } else if (key === '*' || key === 'x' || key === 'X') { // Map '*' or 'x' to multiplication
+                handleOperator('×');
+            } else if (key === '/') { // Map '/' to division
+                handleOperator('÷');
+            } else if (key === '=' || key === 'Enter') {
+                handleEquals();
+            } else if (key === 'Backspace') {
+                handleBackspace();
+            } else if (key === 'Escape' || key === 'c') { // 'c' for clear
+                 resetCalculator();
+            }
+             // Handle Numpad keys
+            else if (key.startsWith('Numpad')) {
+                 if (key >= 'Numpad0' && key <= 'Numpad9') {
+                     inputDigit(key.slice(-1)); // Extract the digit from 'NumpadX'
+                 } else if (key === 'NumpadDecimal') {
+                     inputDigit('.');
+                 } else if (key === 'NumpadAdd') {
+                     handleOperator('+');
+                 } else if (key === 'NumpadSubtract') {
+                     handleOperator('-');
+                 } else if (key === 'NumpadMultiply') {
+                     handleOperator('×');
+                 } else if (key === 'NumpadDivide') {
+                     handleOperator('÷');
+                 }
+             }
+        }
+
+        // Add keyboard listener to the window
+        window.addEventListener('keydown', handleKeyPress);
+
+
+        // --- Initial setup and Button Styling ---
+
+        // Define base button styles using Tailwind classes
+        const baseBtnClasses = [
+            'p-4', 'text-xl', 'rounded-md', 'font-semibold', 'flex', 'items-center', 'justify-center',
+            'focus:outline-none', 'focus:ring-2', 'focus:ring-blue-500', 'focus:ring-opacity-50',
+            'transition-transform', 'duration-100', 'ease-in-out',
+            'transform', 'active:scale-95', 'active:opacity-75'
+        ];
+
+        // Apply default styles to all buttons using classes
+        buttons.querySelectorAll('button').forEach(btn => {
+            btn.classList.add(...baseBtnClasses);
+
+            // Apply specific styles based on type
+            if (btn.classList.contains('btn-number')) {
+                btn.classList.add('bg-gray-300', 'hover:bg-gray-400', 'dark:bg-gray-600', 'dark:hover:bg-gray-500', 'text-gray-800', 'dark:text-gray-200');
+            } else if (btn.classList.contains('btn-operator')) {
+                btn.classList.add('bg-orange-500', 'text-white', 'hover:bg-orange-600');
+            } else if (btn.classList.contains('btn-equals')) {
+                btn.classList.add('bg-green-500', 'text-white', 'hover:bg-green-600');
+            } else if (btn.classList.contains('btn-clear')) {
+                btn.classList.add('bg-red-500', 'text-white', 'hover:bg-red-600');
+            } else if (btn.classList.contains('btn-backspace')) {
+                btn.classList.add('bg-yellow-500', 'text-white', 'hover:bg-yellow-600');
+            }
+        });
+
+        // Initial display update when the page loads
+        updateDisplay();
+    </script>
+</body>
+
+</html>

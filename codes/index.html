@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="en" class="transition-colors duration-300 ease-in-out">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sudoku Master</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Apply theme from localStorage before rendering to prevent flash
+        const savedTheme = localStorage.getItem('theme');
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+        if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+            document.documentElement.classList.add('dark');
+        } else if (savedTheme === 'light') {
+            document.documentElement.classList.remove('dark');
+        }
+
+        // Tailwind Configuration - Extend theme for custom borders, colors, animations
+        tailwind.config = {
+            darkMode: 'class', // Enable dark mode based on 'dark' class
+            theme: {
+                extend: {
+                    borderWidth: {
+                        '3': '3px', // Custom thick border width
+                    },
+                    colors: {
+                        // Custom palette or extending existing ones
+                        primary: { // Example accent color
+                             DEFAULT: '#2563eb', // blue-600
+                             dark: '#1e40af', // blue-800
+                        },
+                        // Define explicit border colors for clarity across themes
+                        borderThin: {
+                            light: '#d1d5db', // gray-300
+                            dark: '#4b5563', // gray-600
+                        },
+                         borderThick: {
+                            light: '#9ca3af', // gray-400
+                            dark: '#374151', // gray-700
+                         },
+                        // Define background colors for cell states
+                         bgSelected: {
+                             light: '#bfdbfe', // blue-200
+                             dark: '#1e3a8a', // blue-800
+                         },
+                         bgRelated: {
+                            light: '#eff6ff', // blue-50
+                            dark: '#172554', // blue-950
+                         },
+                         bgHighlighted: {
+                             light: '#d1fae5', // green-100
+                             dark: '#065f46', // green-800
+                         },
+                         bgError: {
+                             light: '#fecaca', // red-200
+                             dark: '#991b1b', // red-800
+                         }
+                    },
+                    // Custom animation for error feedback
+                    keyframes: {
+                        shake: {
+                            '0%, 100%': { transform: 'translateX(0)' },
+                            '20%, 60%': { transform: 'translateX(-3px)' },
+                            '40%, 80%': { transform: 'translateX(3px)' },
+                        }
+                    },
+                    animation: {
+                        shake: 'shake 0.3s ease-in-out',
+                    }
+                },
+            },
+             // Important: Ensure dark mode variants are enabled for custom colors/widths
+             variants: {
+                 extend: {
+                     borderColor: ['dark'],
+                     backgroundColor: ['dark'],
+                     textColor: ['dark'],
+                     fontWeight: ['dark'],
+                 }
+             }
+        }
+    </script>
+</head>
+
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen flex flex-col items-center p-4 sm:p-8 transition-colors duration-300 ease-in-out">
+
+    <div class="w-full max-w-3xl flex flex-col items-center gap-6">
+        <!-- Header -->
+        <header class="text-center mb-4">
+            <h1 class="text-4xl md:text-5xl font-extrabold mb-2">Sudoku Master</h1>
+            <p class="text-lg text-gray-600 dark:text-gray-400">Challenge your logic.</p>
+        </header>
+
+        <!-- Main Game Card -->
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-4 sm:p-6 w-full max-w-md flex flex-col items-center gap-6">
+            <!-- Controls and Info -->
+            <div class="flex flex-col sm:flex-row justify-between items-center w-full gap-4">
+                <div class="flex items-center gap-3">
+                     <select id="difficultySelect" aria-label="Select Difficulty"
+                        class="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 outline-none text-base cursor-pointer appearance-none focus:ring-2 focus:ring-primary focus:ring-opacity-50 transition-colors">
+                        <option value="easy">Easy</option>
+                        <option value="medium">Medium</option>
+                        <option value="hard">Hard</option>
+                    </select>
+                    <button id="newGameBtn"
+                        class="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors font-semibold text-base focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50 active:scale-95">New Game</button>
+                </div>
+
+                <div id="timer" class="text-2xl font-mono text-gray-800 dark:text-gray-200 font-bold">00:00</div>
+            </div>
+
+            <!-- Sudoku Grid -->
+            <!-- Use relative positioning for potential future absolute overlays -->
+            <div id="game-board" class="w-full max-w-sm aspect-square grid grid-cols-9 mb-2 relative" role="grid">
+                <!-- Cells generated by JavaScript -->
+            </div>
+
+            <!-- Number Pad -->
+            <div id="number-pad" class="grid grid-cols-5 gap-3 w-full max-w-sm sm:max-w-none">
+                 <!-- Numbers 1-9 -->
+                <button class="number-btn flex items-center justify-center p-4 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 rounded-lg text-2xl font-bold transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50 active:scale-95" data-number="1" aria-label="Enter 1">1</button>
+                <button class="number-btn flex items-center justify-center p-4 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 rounded-lg text-2xl font-bold transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50 active:scale-95" data-number="2" aria-label="Enter 2">2</button>
+                <button class="number-btn flex items-center justify-center p-4 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 rounded-lg text-2xl font-bold transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50 active:scale-95" data-number="3" aria-label="Enter 3">3</button>
+                <button class="number-btn flex items-center justify-center p-4 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 rounded-lg text-2xl font-bold transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50 active:scale-95" data-number="4" aria-label="Enter 4">4</button>
+                <button class="number-btn flex items-center justify-center p-4 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 rounded-lg text-2xl font-bold transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50 active:scale-95" data-number="5" aria-label="Enter 5">5</button>
+                <button class="number-btn flex items-center justify-center p-4 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 rounded-lg text-2xl font-bold transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50 active:scale-95" data-number="6" aria-label="Enter 6">6</button>
+                <button class="number-btn flex items-center justify-center p-4 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 rounded-lg text-2xl font-bold transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50 active:scale-95" data-number="7" aria-label="Enter 7">7</button>
+                <button class="number-btn flex items-center justify-center p-4 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 rounded-lg text-2xl font-bold transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50 active:scale-95" data-number="8" aria-label="Enter 8">8</button>
+                <button class="number-btn flex items-center justify-center p-4 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 rounded-lg text-2xl font-bold transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50 active:scale-95" data-number="9" aria-label="Enter 9">9</button>
+                 <!-- Clear button -->
+                 <button id="clearBtn" class="flex items-center justify-center p-4 bg-red-600 text-white hover:bg-red-700 rounded-lg text-base font-semibold transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 active:scale-95" aria-label="Clear cell value">CLEAR</button>
+            </div>
+        </div>
+
+        <!-- Status/Message Area -->
+         <div id="status-message" aria-live="polite" class="mt-4 text-center text-base h-6 text-gray-700 dark:text-gray-300"></div>
+    </div>
+
+    <!-- Game Over/Solved Modal -->
+    <div id="gameOverModal" class="fixed inset-0 z-50 bg-black bg-opacity-70 flex items-center justify-center p-4 hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-8 max-w-sm w-full flex flex-col items-center text-center gap-6">
+            <h3 id="modalTitle" class="text-3xl font-bold text-gray-900 dark:text-gray-100"></h3>
+            <p id="modalMessage" class="text-lg text-gray-700 dark:text-gray-300"></p>
+            <button id="closeModalBtn" class="px-8 py-3 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors font-semibold focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50 active:scale-95">Play Again</button>
+        </div>
+    </div>
+
+    <!-- Theme Toggle Button -->
+    <button id="themeToggleBtn" class="fixed bottom-4 right-4 p-3 rounded-full bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 shadow-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50" aria-label="Toggle theme">
+        <svg class="w-6 h-6 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+        <svg class="w-6 h-6 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+    </button>
+
+
+    <script>
+        // --- Global Variables and DOM Elements ---
+        const htmlEl = document.documentElement;
+        const gameBoardEl = document.getElementById('game-board');
+        const numberPadEl = document.getElementById('number-pad');
+        const newGameBtn = document.getElementById('newGameBtn');
+        const difficultySelect = document.getElementById('difficultySelect');
+        const timerEl = document.getElementById('timer');
+        const statusMessageEl = document.getElementById('status-message');
+        const gameOverModal = document.getElementById('gameOverModal');
+        const modalTitleEl = document.getElementById('modalTitle');
+        const modalMessageEl = document.getElementById('modalMessage');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const themeToggleBtn = document.getElementById('themeToggleBtn');
+
+        let board = []; // Current game board (0 for empty)
+        let solution = []; // The solved board
+        let initialBoard = []; // Board with only initial numbers (for resetting and styling)
+        let selectedCell = null; // Currently selected cell element
+        let timerInterval = null;
+        let timeElapsed = 0;
+        let isGameActive = false;
+
+         // --- Sudoku Generation Logic (Simplified, not guaranteed unique solution) ---
+
+         /**
+          * Shuffles an array using the Fisher-Yates algorithm.
+          * @param {Array} array - The array to shuffle.
+          * @returns {Array} - The shuffled array.
+          */
+         function shuffleArray(array) {
+             const newArray = [...array]; // Create a copy to avoid modifying original
+             for (let i = newArray.length - 1; i > 0; i--) {
+                 const j = Math.floor(Math.random() * (i + 1));
+                 [newArray[i], newArray[j]] = [newArray[j], newArray[i]]; // Swap
+             }
+             return newArray;
+         }
+
+         /**
+          * Checks if placing a number at a specific grid position is valid according to Sudoku rules.
+          * @param {number[][]} grid - The current Sudoku grid.
+          * @param {number} row - The row index (0-8).
+          * @param {number} col - The column index (0-8).
+          * @param {number} num - The number to check (1-9).
+          * @returns {boolean} - True if the placement is valid, false otherwise.
+          */
+         function isValidPlacement(grid, row, col, num) {
+             // Check row
+             for (let c = 0; c < 9; c++) {
+                 if (grid[row][c] === num) return false;
+             }
+             // Check column
+             for (let r = 0; r < 9; r++) {
+                 if (grid[r][col] === num) return false;
+             }
+             // Check 3x3 box
+             const startRow = Math.floor(row / 3) * 3;
+             const startCol = Math.floor(col / 3) * 3;
+             for (let r = startRow; r < startRow + 3; r++) {
+                 for (let c = startCol; c < startCol + 3; c++) {
+                     if (grid[r][c] === num) return false;
+                 }
+             }
+             return true;
+         }
+
+         /**
+          * Recursively fills the Sudoku grid to generate a complete solution.
+          * @param {number[][]} grid - The grid to fill (initially empty).
+          * @returns {boolean} - True if the grid was successfully filled, false otherwise.
+          */
+         function fillGrid(grid) {
+             for (let row = 0; row < 9; row++) {
+                 for (let col = 0; col < 9; col++) {
+                     if (grid[row][col] === 0) { // Find next empty cell
+                         const nums = shuffleArray([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+                         for (const num of nums) {
+                             if (isValidPlacement(grid, row, col, num)) {
+                                 grid[row][col] = num;
+                                 if (fillGrid(grid)) return true; // Recurse
+                                 grid[row][col] = 0; // Backtrack
+                             }
+                         }
+                         return false; // No number worked for this cell
+                     }
+                 }
+             }
+             return true; // Grid is full
+         }
+
+         /**
+          * Generates a Sudoku puzzle by filling a grid and removing numbers based on difficulty.
+          * Note: This generator is basic and does not guarantee a unique solution.
+          * @param {string} difficulty - 'easy', 'medium', or 'hard'.
+          * @returns {{solved: number[][], initial: number[][]}} - The solved grid and the initial puzzle grid.
+          */
+         function generatePuzzle(difficulty) {
+             // Create an empty 9x9 grid
+             const solvedGrid = Array(9).fill(0).map(() => Array(9).fill(0));
+             fillGrid(solvedGrid); // Fill to get a complete solution
+
+             // Copy to create the initial grid
+             const initialGrid = solvedGrid.map(row => [...row]);
+
+             // Determine number of cells to remove based on difficulty
+             let cellsToRemove;
+             switch (difficulty) {
+                 case 'easy': cellsToRemove = 40; break; // Examples: 35-40
+                 case 'medium': cellsToRemove = 50; break; // Examples: 45-50
+                 case 'hard': cellsToRemove = 60; break; // Examples: 55-60
+                 default: cellsToRemove = 45;
+             }
+
+             let removedCount = 0;
+             // Simple removal process - does not check for unique solvability
+             while (removedCount < cellsToRemove) {
+                  const row = Math.floor(Math.random() * 9);
+                  const col = Math.floor(Math.random() * 9);
+
+                  if (initialGrid[row][col] !== 0) {
+                      initialGrid[row][col] = 0;
+                      removedCount++;
+                  }
+             }
+
+             return { solved: solvedGrid, initial: initialGrid };
+         }
+
+        // --- Game State Management ---
+
+        /**
+         * Initializes a new game based on selected difficulty.
+         */
+        function newGame() {
+            isGameActive = false; // Temporarily stop interactions
+            stopTimer();
+            timeElapsed = 0;
+            updateTimerDisplay();
+            statusMessageEl.textContent = 'Generating new puzzle...';
+            clearErrorHighlighting();
+            deselectCell();
+
+            const difficulty = difficultySelect.value;
+
+            // Use a slight delay to allow UI update before generation
+            requestAnimationFrame(() => {
+                 setTimeout(() => {
+                     try {
+                         const puzzle = generatePuzzle(difficulty);
+                         solution = puzzle.solved;
+                         initialBoard = puzzle.initial;
+                         // Clone initialBoard to create the playable board
+                         board = initialBoard.map(row => [...row]);
+
+                         renderBoard();
+                         statusMessageEl.textContent = 'Game started!';
+                         isGameActive = true; // Allow interactions
+                         startTimer();
+                     } catch (error) {
+                         console.error("Failed to generate Sudoku:", error);
+                         statusMessageEl.textContent = 'Error generating puzzle.';
+                         isGameActive = false; // Game failed to start
+                     }
+                 }, 50); // Short delay
+            });
+        }
+
+        /**
+         * Checks if the current user board matches the solution.
+         * @returns {boolean} - True if solved, false otherwise.
+         */
+        function checkWin() {
+             for(let r = 0; r < 9; r++) {
+                 for (let c = 0; c < 9; c++) {
+                      // If any cell in the current board doesn't match the solution
+                      // or is still empty (0), the puzzle is not solved.
+                     if (board[r][c] === 0 || board[r][c] !== solution[r][c]) {
+                         return false;
+                     }
+                 }
+             }
+             return true; // All cells match the solution
+        }
+
+
+        // --- Rendering and UI Updates ---
+
+        /**
+         * Renders the current state of the board to the HTML grid, applying Tailwind classes for styling and borders.
+         */
+        function renderBoard() {
+            gameBoardEl.innerHTML = ''; // Clear existing grid
+
+            for (let r = 0; r < 9; r++) {
+                for (let c = 0; c < 9; c++) {
+                    const cell = document.createElement('div');
+                    // Base cell classes
+                    cell.classList.add(
+                        'cell', // Custom CSS class for aspect ratio/positioning if needed (though Tailwind should handle)
+                        'aspect-square', 'flex', 'items-center', 'justify-center', 'cursor-pointer', 'select-none',
+                        'transition-colors', 'duration-100', 'ease-in-out',
+                        'border', 'border-borderThin-light', 'dark:border-borderThin-dark' // Default borders
+                    );
+
+                    // Add thick borders based on grid position (1-based index mentally, 0-based in array)
+                    // Vertical borders after column 3 and 6
+                    if (c === 2 || c === 5) {
+                        cell.classList.add('border-r-3', 'border-r-borderThick-light', 'dark:border-r-borderThick-dark');
+                    }
+                    // Horizontal borders after row 3 and 6
+                    if (r === 2 || r === 5) {
+                        cell.classList.add('border-b-3', 'border-b-borderThick-light', 'dark:border-b-borderThick-dark');
+                    }
+                    // Outer top border for the first row
+                    if (r === 0) {
+                         cell.classList.add('border-t', 'border-t-borderThin-light', 'dark:border-t-borderThin-dark');
+                    }
+                    // Outer left border for the first column
+                    if (c === 0) {
+                        cell.classList.add('border-l', 'border-l-borderThin-light', 'dark:border-l-borderThin-dark');
+                    }
+
+
+                    // Add data attributes for row and column
+                    cell.dataset.row = r;
+                    cell.dataset.col = c;
+                     cell.setAttribute('role', 'gridcell'); // ARIA role for grid cell
+
+                    const span = document.createElement('span');
+                     // Base span classes for number styling
+                    span.classList.add('text-2xl', 'font-normal', 'text-gray-900', 'dark:text-gray-100');
+
+                    const number = board[r][c];
+
+                    if (number !== 0) {
+                        span.textContent = number;
+                         cell.setAttribute('aria-label', `Cell Row ${r + 1} Column ${c + 1} has value ${number}`);
+                    } else {
+                         cell.setAttribute('aria-label', `Cell Row ${r + 1} Column ${c + 1} is empty`);
+                    }
+
+
+                    // Add class if it's an initial number (cannot be changed by user)
+                    if (initialBoard[r][c] !== 0) {
+                        cell.classList.add('initial');
+                        span.classList.add('font-bold', 'text-black', 'dark:text-white'); // Initial numbers are bold/black
+                         cell.setAttribute('aria-readonly', 'true'); // ARIA attribute for initial cells
+                    } else {
+                         cell.setAttribute('aria-editable', 'true'); // ARIA attribute for editable cells
+                    }
+
+                    cell.appendChild(span);
+                    gameBoardEl.appendChild(cell);
+                }
+            }
+        }
+
+        /**
+         * Applies visual highlights to the selected cell and related cells (row, column, box, matching numbers).
+         */
+        function updateCellHighlights() {
+             // Remove previous highlights
+             gameBoardEl.querySelectorAll('.cell').forEach(cell => {
+                 cell.classList.remove('selected', 'related', 'highlighted', 'animate-shake');
+                 cell.style.animation = ''; // Clear inline animation style
+                 cell.removeAttribute('aria-selected');
+             });
+
+             if (!selectedCell) return; // No cell selected
+
+             selectedCell.classList.add('selected');
+             selectedCell.setAttribute('aria-selected', 'true');
+
+             const row = parseInt(selectedCell.dataset.row, 10);
+             const col = parseInt(selectedCell.dataset.col, 10);
+             // Get the value from the *displayed* content or internal board state?
+             // Use the internal board state as it's the source of truth.
+             const selectedValue = board[row][col];
+
+             const cells = gameBoardEl.querySelectorAll('.cell');
+             cells.forEach(cell => {
+                 const r = parseInt(cell.dataset.row, 10);
+                 const c = parseInt(cell.dataset.col, 10);
+
+                 // Highlight related cells (same row, col, box)
+                 if (r === row || c === col || (Math.floor(r/3) === Math.floor(row/3) && Math.floor(c/3) === Math.floor(col/3))) {
+                     cell.classList.add('related');
+                 }
+
+                 // Highlight cells with the same value if the selected cell is not empty
+                  if (selectedValue !== 0 && board[r][c] === selectedValue) {
+                      cell.classList.add('highlighted');
+                  }
+             });
+
+             // Ensure selected cell retains its selected highlight, overriding related/highlighted backgrounds if needed
+             // Tailwind order of classes usually handles this, but explicit class management might be safer
+             // E.g., selected cell should keep bg-selected even if it's also related or highlighted.
+             // CSS background rules: last one defined wins. Order in classList matters.
+             // Add/remove specific state classes should be sufficient.
+        }
+
+        /**
+         * Selects a cell in the grid, applying visual highlight and
+         * removing highlight from previously selected cell.
+         * @param {HTMLElement} cellElement - The cell element to select.
+         */
+        function selectCell(cellElement) {
+            // Deselect previous cell
+            deselectCell();
+
+            selectedCell = cellElement;
+            updateCellHighlights(); // Update highlights based on the new selection
+
+             // Add aria-activedescendant to grid for current cell focus tracking
+             // const cellId = `cell-${selectedCell.dataset.row}-${selectedCell.dataset.col}`;
+             // selectedCell.id = cellId; // Give the selected cell an ID if it doesn't have one
+             // gameBoardEl.setAttribute('aria-activedescendant', cellId);
+             // NOTE: aria-activedescendant is complex; simpler to manage focus visually and via aria-selected.
+        }
+
+        /**
+         * Deselects the currently selected cell, removing highlights.
+         */
+        function deselectCell() {
+            if (selectedCell) {
+                selectedCell.classList.remove('selected'); // Remove specific selected class
+                selectedCell.removeAttribute('aria-selected');
+
+                // Remove related and highlighted classes from ALL cells
+                 gameBoardEl.querySelectorAll('.cell').forEach(cell => {
+                    cell.classList.remove('related', 'highlighted');
+                });
+
+                selectedCell = null; // Clear selected cell reference
+                 // gameBoardEl.removeAttribute('aria-activedescendant'); // Clear aria-activedescendant
+            }
+        }
+
+         /**
+          * Clears any error highlighting from cells.
+          */
+        function clearErrorHighlighting() {
+             gameBoardEl.querySelectorAll('.cell').forEach(cell => {
+                 cell.classList.remove('error', 'animate-shake');
+                  cell.style.animation = ''; // Clear inline animation style
+             });
+             statusMessageEl.textContent = ''; // Also clear error message
+        }
+
+
+        // --- Input Handling ---
+
+        /**
+         * Handles a click on a grid cell.
+         * @param {Event} event - The click event.
+         */
+        function handleCellClick(event) {
+            if (!isGameActive) return;
+
+            const cell = event.target.closest('.cell');
+            if (!cell) return; // Click wasn't on a cell
+
+            // Cannot select initial numbers
+            if (cell.classList.contains('initial')) {
+                deselectCell(); // Ensure no cell is selected if clicking an initial cell
+                 statusMessageEl.textContent = 'Initial numbers cannot be changed.';
+                 setTimeout(() => { statusMessageEl.textContent = ''; }, 1500);
+                return;
+            }
+
+            selectCell(cell);
+        }
+
+        /**
+         * Handles input from number pad or keyboard.
+         * Enters the number into the selected cell and validates the move.
+         * @param {number | 0} numberToEnter - The number (1-9) or 0 to clear.
+         */
+        function handleInput(numberToEnter) {
+             if (!isGameActive || !selectedCell) {
+                 statusMessageEl.textContent = 'Select a cell first.';
+                 setTimeout(() => { statusMessageEl.textContent = ''; }, 1500);
+                 return; // Need an active game and a selected cell
+             }
+
+             const row = parseInt(selectedCell.dataset.row, 10);
+             const col = parseInt(selectedCell.dataset.col, 10);
+             const span = selectedCell.querySelector('span');
+
+            // Cannot change initial numbers (redundant check, but safe)
+            if (initialBoard[row][col] !== 0) {
+                 statusMessageEl.textContent = 'Cannot change initial numbers.';
+                 setTimeout(() => { statusMessageEl.textContent = ''; }, 1500);
+                 deselectCell();
+                 return;
+            }
+
+            clearErrorHighlighting(); // Clear previous errors from ALL cells
+
+            // Check if the move is correct against the solution
+            const isCorrect = (numberToEnter === 0) || (solution[row][col] === numberToEnter);
+
+            // Update the internal board state regardless of correctness for visual feedback
+            board[row][col] = numberToEnter;
+
+            // Update the display element
+            span.textContent = numberToEnter === 0 ? '' : numberToEnter;
+            selectedCell.setAttribute('aria-label', numberToEnter === 0 ? `Cell Row ${row + 1} Column ${col + 1} is empty` : `Cell Row ${row + 1} Column ${col + 1} has value ${numberToEnter}`);
+
+
+            if (isCorrect) {
+                selectedCell.classList.remove('error'); // Ensure error state is cleared
+                // Re-render/update highlights based on the potentially new number
+                // Re-selecting is the easiest way to re-run the highlight logic
+                 const cellAfterUpdate = gameBoardEl.querySelector(`[data-row='${row}'][data-col='${col}']`);
+                 if (cellAfterUpdate) {
+                      selectCell(cellAfterUpdate);
+                 } else {
+                     // Should not happen if renderBoard works correctly, but as a fallback
+                     deselectCell();
+                 }
+
+
+                // Check for win condition after a correct move
+                if (checkWin()) {
+                    isGameActive = false;
+                    stopTimer();
+                    showGameOverModal(true);
+                } else {
+                    statusMessageEl.textContent = ''; // Clear status message on correct move
+                }
+
+            } else {
+                // Invalid move
+                 selectedCell.classList.add('error'); // Highlight the specific cell as incorrect
+                 selectedCell.classList.add('animate-shake'); // Add shake animation
+                 selectedCell.style.animation = 'shake 0.3s ease-in-out'; // Apply inline for easier removal after anim
+
+                 statusMessageEl.textContent = 'Incorrect!'; // Short error message
+
+                 // Clear the incorrect number and error state after a short delay
+                 // Use a short delay matching the shake animation duration + a bit
+                 setTimeout(() => {
+                     // Check if the cell is still selected and contains the same incorrect number
+                      if (selectedCell && parseInt(selectedCell.dataset.row, 10) === row && parseInt(selectedCell.dataset.col, 10) === col) {
+                         if (board[row][col] === numberToEnter) { // Check if it's still the number we just placed
+                              board[row][col] = 0; // Revert state
+                              selectedCell.querySelector('span').textContent = ''; // Clear display
+                              selectedCell.setAttribute('aria-label', `Cell Row ${row + 1} Column ${col + 1} is empty`);
+                         }
+                         selectedCell.classList.remove('error', 'animate-shake'); // Remove highlight/animation
+                         selectedCell.style.animation = ''; // Clear inline style
+                     } else {
+                         // If selection changed or input was cleared differently, just clean up the specific cell
+                         const cellToClear = gameBoardEl.querySelector(`[data-row='${row}'][data-col='${col}']`);
+                         if (cellToClear) {
+                              cellToClear.classList.remove('error', 'animate-shake');
+                              cellToClear.style.animation = '';
+                         }
+                         // The board state might have changed if another input happened quickly
+                     }
+                     statusMessageEl.textContent = ''; // Clear message
+                 }, 1000); // Clear after 1 second (adjust as needed)
+
+                 // After an incorrect entry, deselect the cell
+                 deselectCell();
+            }
+
+             // Optional: Save game state
+             // saveGame();
+        }
+
+
+        // --- Timer Logic ---
+
+        /**
+         * Starts the game timer.
+         */
+        function startTimer() {
+            if (timerInterval) return; // Prevent multiple timers
+
+            timerInterval = setInterval(() => {
+                timeElapsed++;
+                updateTimerDisplay();
+            }, 1000);
+        }
+
+        /**
+         * Stops the game timer.
+         */
+        function stopTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+        }
+
+        /**
+         * Updates the timer display element.
+         */
+        function updateTimerDisplay() {
+            const minutes = Math.floor(timeElapsed / 60);
+            const seconds = timeElapsed % 60;
+            const formattedTime = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            timerEl.textContent = formattedTime;
+        }
+
+        // --- Modal Logic ---
+
+        /**
+         * Shows the game over/solved modal.
+         * @param {boolean} isSolved - True if the game was solved.
+         */
+        function showGameOverModal(isSolved) {
+            if (isSolved) {
+                modalTitleEl.textContent = 'Congratulations!';
+                // Use innerHTML to safely inject the final time span with styling
+                modalMessageEl.innerHTML = `You solved the puzzle in <span class="font-extrabold text-gray-900 dark:text-gray-100">${timerEl.textContent}</span>!`;
+            } else {
+                 modalTitleEl.textContent = 'Game Ended'; // Generic end, e.g., if a "give up" button existed
+                 modalMessageEl.textContent = 'The game has ended.';
+            }
+
+            gameOverModal.classList.remove('hidden'); // Make modal visible
+             // Focus the close button for accessibility
+             closeModalBtn.focus();
+        }
+
+        /**
+         * Hides the game over/solved modal.
+         */
+        function hideGameOverModal() {
+            gameOverModal.classList.add('hidden'); // Hide modal
+             // Optionally focus back to the New Game button or grid
+             newGameBtn.focus();
+        }
+
+        // --- Theme Toggle ---
+         /**
+          * Toggles between dark and light mode.
+          */
+         function toggleTheme() {
+             const isDark = htmlEl.classList.toggle('dark');
+             localStorage.setItem('theme', isDark ? 'dark' : 'light');
+         }
+
+
+        // --- Event Listeners ---
+
+        // Listen for clicks on the game board container
+        gameBoardEl.addEventListener('click', handleCellClick);
+
+        // Listen for clicks on the number pad container using delegation
+        numberPadEl.addEventListener('click', (event) => {
+             const numberBtn = event.target.closest('.number-btn');
+             const clearBtn = event.target.closest('#clearBtn');
+
+             if (numberBtn) {
+                 const numberToEnter = parseInt(numberBtn.dataset.number, 10);
+                 handleInput(numberToEnter);
+             } else if (clearBtn) {
+                 handleInput(0); // 0 indicates clear
+             }
+        });
+
+        // Listen for New Game button click
+        newGameBtn.addEventListener('click', newGame);
+
+        // Listen for modal close button click
+        closeModalBtn.addEventListener('click', () => {
+            hideGameOverModal();
+            newGame(); // Start a new game when modal is closed
+        });
+
+        // Optional: Handle click outside modal to close
+        gameOverModal.addEventListener('click', (event) => {
+             // Check if the click target is the modal backdrop itself, not the content
+             if (event.target === gameOverModal) {
+                 hideGameOverModal();
+                 newGame();
+             }
+        });
+
+        // Listen for theme toggle button click
+        themeToggleBtn.addEventListener('click', toggleTheme);
+
+
+         // Handle keyboard input for numbers, clear, and navigation
+         window.addEventListener('keydown', (event) => {
+             // If modal is open, only allow Escape or Enter on close button
+             if (!gameOverModal.classList.contains('hidden')) {
+                 if (event.key === 'Escape') {
+                     event.preventDefault();
+                     hideGameOverModal();
+                     newGame();
+                 } else if (event.key === 'Enter') {
+                      // If focus is on the modal close button, Enter activates it
+                      if (document.activeElement === closeModalBtn) {
+                          closeModalBtn.click();
+                          event.preventDefault();
+                      }
+                 }
+                 return; // Ignore other keys when modal is open
+             }
+
+             if (!isGameActive) return; // Ignore keys if game is not active
+
+             let targetCell = selectedCell;
+
+             // If no cell is selected, try to select the first editable cell for number/clear input
+             if (!selectedCell && (event.key >= '1' && event.key <= '9' || event.key === 'Backspace' || event.key === 'Delete')) {
+                 const firstEditableCell = gameBoardEl.querySelector('.cell:not(.initial)');
+                 if (firstEditableCell) {
+                     selectCell(firstEditableCell);
+                      // Update targetCell to the newly selected one for input processing below
+                      targetCell = selectedCell;
+                 } else {
+                     return; // No editable cells found, ignore input
+                 }
+             }
+
+             // Process input or navigation only if a cell is selected or was just selected
+             if (targetCell) {
+                 const row = parseInt(targetCell.dataset.row, 10);
+                 const col = parseInt(targetCell.dataset.col, 10);
+
+                 // Check if it's a digit 1-9
+                 if (event.key >= '1' && event.key <= '9') {
+                     event.preventDefault(); // Prevent default browser action (e.g., scrolling)
+                     const numberToEnter = parseInt(event.key, 10);
+                     handleInput(numberToEnter);
+                 }
+                 // Check for backspace or delete to clear cell
+                 else if (event.key === 'Backspace' || event.key === 'Delete') {
+                     event.preventDefault(); // Prevent default browser action
+                     handleInput(0); // 0 indicates clear
+                 }
+                 // Arrow keys for navigation
+                 else if (event.key === 'ArrowUp') {
+                     event.preventDefault();
+                     const nextRow = row > 0 ? row - 1 : 8; // Wrap around
+                     const nextCell = gameBoardEl.querySelector(`[data-row='${nextRow}'][data-col='${col}']`);
+                     if (nextCell) selectCell(nextCell);
+
+                 } else if (event.key === 'ArrowDown') {
+                     event.preventDefault();
+                      const nextRow = row < 8 ? row + 1 : 0; // Wrap around
+                     const nextCell = gameBoardEl.querySelector(`[data-row='${nextRow}'][data-col='${col}']`);
+                     if (nextCell) selectCell(nextCell);
+
+                 } else if (event.key === 'ArrowLeft') {
+                     event.preventDefault();
+                     const nextCol = col > 0 ? col - 1 : 8; // Wrap around
+                     const nextCell = gameBoardEl.querySelector(`[data-row='${row}'][data-col='${nextCol}']`);
+                     if (nextCell) selectCell(nextCell);
+
+                 } else if (event.key === 'ArrowRight') {
+                     event.preventDefault();
+                     const nextCol = col < 8 ? col + 1 : 0; // Wrap around
+                     const nextCell = gameBoardEl.querySelector(`[data-row='${row}'][data-col='${nextCol}']`);
+                     if (nextCell) selectCell(nextCell);
+                 } else if (event.key === 'Escape') {
+                     // Deselect cell on Escape key
+                     deselectCell();
+                 }
+                  // Add Numpad support
+                 else if (event.key.startsWith('Numpad')) {
+                     if (event.key >= 'Numpad0' && event.key <= 'Numpad9') {
+                         event.preventDefault();
+                         const numberToEnter = parseInt(event.key.slice(-1), 10); // Extract digit
+                         if (numberToEnter >= 1 && numberToEnter <= 9) {
+                             handleInput(numberToEnter);
+                         } else if (numberToEnter === 0) { // Numpad 0 can clear
+                             handleInput(0);
+                         }
+                     } else if (event.key === 'NumpadDecimal' || event.key === 'NumpadDelete') {
+                         event.preventDefault();
+                         handleInput(0); // Treat numpad . or Del as clear
+                     }
+                 }
+             }
+         });
+
+
+        // --- Initialization ---
+        newGame(); // Start a new game when the page loads
+
+    </script>
+</body>
+
+</html>
