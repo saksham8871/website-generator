@@ -1,6 +1,8 @@
 # 🌐 Website Generator
 
-A simple and lightweight tool to generate static websites effortlessly. Ideal for developers and content creators who want to spin up a basic website with minimal configuration and coding.
+A simple and lightweight Node.js-based tool to generate static websites effortlessly. Ideal for developers and content creators who want to spin up a basic website with minimal configuration and no manual coding.
+
+This project is built using **Node.js**, **HTML**, **CSS**, and optionally **npm** for dependency management. It allows you to choose templates, customize content, and generate a complete static website ready for deployment.
 
 ---
 
